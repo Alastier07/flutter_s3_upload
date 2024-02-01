@@ -65,9 +65,57 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: const Text('Clear File'),
             ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: file == null
+                  ? null
+                  : () => uploadFileToS3(
+                        file: file!,
+                        bucketName: '',
+                        key: '',
+                        s3Region: '',
+                        credentials: AwsClientCredentials(
+                          accessKey: '',
+                          secretKey: '',
+                        ),
+                      ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                fixedSize: const Size(140, 0),
+              ),
+              child: const Text('Upload'),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> uploadFileToS3({
+    required File file,
+    required String bucketName,
+    required String key,
+    required String s3Region,
+    required AwsClientCredentials credentials,
+  }) async {
+    try {
+      final api = S3(
+        region: s3Region,
+        credentials: credentials,
+      );
+
+      await api.putObject(
+        bucket: bucketName,
+        key: key,
+        body: file.readAsBytesSync(),
+      );
+
+      api.close();
+
+      print('File uploaded successfully!');
+    } catch (e) {
+      print('Error uploading file: $e');
+    }
   }
 }
