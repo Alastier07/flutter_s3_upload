@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:aws_s3_api/s3-2006-03-01.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -71,12 +72,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? null
                   : () => uploadFileToS3(
                         file: file!,
-                        bucketName: '',
-                        key: '',
-                        s3Region: '',
+                        bucketName: dotenv.get('S3_BUCKET_NAME'),
+                        key: '${dotenv.get('S3_BUCKET_KEY')}/test.png' ,
+                        awsRegion: dotenv.get('AWS_REGION'),
                         credentials: AwsClientCredentials(
-                          accessKey: '',
-                          secretKey: '',
+                          accessKey: dotenv.get('AWS_ACCESS_KEY'),
+                          secretKey: dotenv.get('AWS_SECRET_KEY'),
                         ),
                       ),
               style: ElevatedButton.styleFrom(
@@ -96,12 +97,12 @@ class _HomeScreenState extends State<HomeScreen> {
     required File file,
     required String bucketName,
     required String key,
-    required String s3Region,
+    required String awsRegion,
     required AwsClientCredentials credentials,
   }) async {
     try {
       final api = S3(
-        region: s3Region,
+        region: awsRegion,
         credentials: credentials,
       );
 
