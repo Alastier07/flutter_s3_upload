@@ -13,7 +13,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  File? file;
+  File? _file;
+  bool _isUploading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -27,28 +28,30 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(
               height: 200,
               width: 200,
-              child: file == null
+              child: _file == null
                   ? const Icon(
                       Icons.broken_image_rounded,
                       size: 100,
                     )
                   : Image.file(
-                      file!,
+                      _file!,
                       fit: BoxFit.cover,
                     ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () async {
-                FilePickerResult? result =
-                    await FilePicker.platform.pickFiles();
+              onPressed: _isUploading
+                  ? null
+                  : () async {
+                      FilePickerResult? result =
+                          await FilePicker.platform.pickFiles();
 
-                if (result != null) {
-                  setState(() {
-                    file = File(result.files.single.path!);
-                  });
-                }
-              },
+                      if (result != null) {
+                        setState(() {
+                          _file = File(result.files.single.path!);
+                        });
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
                 foregroundColor: Colors.white,
@@ -58,7 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 4),
             ElevatedButton(
-              onPressed: () => setState(() => file = null),
+              onPressed:
+                  _isUploading ? null : () => setState(() => _file = null),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,
                 foregroundColor: Colors.white,
@@ -68,24 +72,56 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: file == null
+              onPressed: _file == null
                   ? null
-                  : () => uploadFileToS3(
-                        file: file!,
+                  : () async {
+                      setState(() => _isUploading = true);
+                      await uploadFileToS3(
+                        file: _file!,
                         bucketName: dotenv.get('S3_BUCKET_NAME'),
-                        key: '${dotenv.get('S3_BUCKET_KEY')}/test.png' ,
+                        key: '${dotenv.get('S3_BUCKET_KEY')}/test2.png',
                         awsRegion: dotenv.get('AWS_REGION'),
                         credentials: AwsClientCredentials(
                           accessKey: dotenv.get('AWS_ACCESS_KEY'),
                           secretKey: dotenv.get('AWS_SECRET_KEY'),
                         ),
-                      ),
+                      ).then(
+                        (value) {
+                          if (value == 1) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('File uploaded successfully!'),
+                              ),
+                            );
+
+                            setState(() => _file = null);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Something went wrong, please try again.'),
+                              ),
+                            );
+                          }
+                        },
+                      );
+
+                      setState(
+                        () => _isUploading = false,
+                      );
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
                 fixedSize: const Size(140, 0),
               ),
-              child: const Text('Upload'),
+              child: _isUploading
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(),
+                    )
+                  : const Text('Upload'),
             ),
           ],
         ),
@@ -93,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> uploadFileToS3({
+  Future<int> uploadFileToS3({
     required File file,
     required String bucketName,
     required String key,
@@ -115,8 +151,12 @@ class _HomeScreenState extends State<HomeScreen> {
       api.close();
 
       print('File uploaded successfully!');
+
+      return 1;
     } catch (e) {
-      print('Error uploading file: $e');
+      print('Error uploading _file: $e');
+
+      return 2;
     }
   }
 }
