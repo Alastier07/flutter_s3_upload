@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:aws_s3_api/s3-2006-03-01.dart';
 import 'package:file_picker/file_picker.dart';
@@ -75,11 +76,14 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _file == null
                   ? null
                   : () async {
+                      final uniqueFileName = generateRandomString(8);
+
                       setState(() => _isUploading = true);
+
                       await uploadFileToS3(
                         file: _file!,
                         bucketName: dotenv.get('S3_BUCKET_NAME'),
-                        key: '${dotenv.get('S3_BUCKET_KEY')}/test2.png',
+                        key: '${dotenv.get('S3_BUCKET_KEY')}/$uniqueFileName',
                         awsRegion: dotenv.get('AWS_REGION'),
                         credentials: AwsClientCredentials(
                           accessKey: dotenv.get('AWS_ACCESS_KEY'),
@@ -107,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
 
                       setState(
-                        () => _isUploading = false,
+                        () => _isUploading = false
                       );
                     },
               style: ElevatedButton.styleFrom(
@@ -158,5 +162,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
       return 2;
     }
+  }
+
+  String generateRandomString(int length) {
+    const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random();
+    return String.fromCharCodes(
+      Iterable.generate(
+        length,
+        (_) => characters.codeUnitAt(
+          random.nextInt(characters.length),
+        ),
+      ),
+    );
   }
 }
